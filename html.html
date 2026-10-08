@@ -7,16 +7,16 @@
     <title>catch the falling stars</title>
     <style>
         body {
-            margin: 0;
-            padding: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background-color: #1a1a2e;
-            font-family: 'Arial', sans-serif;
-            color: #ffffff;
-            overflow: hidden;
+          margin: 0;
+          padding: 0;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          min-height: 100vh;
+          background-color: #1a1a2e;
+          font-family: 'Arial', sans-serif;
+          color: #ffffff;
+          overflow: hidden;
         }
 
         #game-container {
@@ -68,9 +68,164 @@
             box-shadow: 0 0 20px rgba(233, 69, 96, 0.5);
             z-index: 10;
         }
+        #game-over h2 {color: #e94560; margin-top: 0; font-size: 28px; }
+        #game-over button { background-color: #e94560; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; margin-top: 15px; transition: background-color 0.3, transform 0.1s; }
+        #game-over button:hover { background-color: #c7364f; }
+        #game-over button:active { transform: scale(0.95); }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
-    
+    <div id="game-container">
+        <h1>catch the falling stars</h1>
+        <div id="stats">
+            <span>score: <span id="score">0</span></span>
+            <span>lives: <span id="lives">3</span></span>
+        </div>
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <p id="controls">Use ← and → arrow keys to move the paddle</p>
+        
+       
+        <div id="game-over" class="hidden">
+            <h2>game-over!</h2>
+             <p>Your final score: <span id="final-score">0</span></p>
+            <button onclick="resetGame()">Play Again</button>
+        </div>
+    </div>
+
+    <script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const scoreEl = document.getElementById('score');
+    const livesEl = document.getElementById('lives');
+    const gameOverEl = document.getElementById('game-over');
+    const finalScoreEl = document.getElementById('final-score');
+
+    let score = 0;
+    let lives = 3;
+    let gameOver = false;
+    let stars = [];
+    let frameCount = 0;
+
+    const player = {
+        x: canvas.width / 2 - 30,
+        y: canvas.height - 30,
+        width: 60,
+        height: 15,
+        speed: 7,
+        dx: 0
+    };
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') {
+            player.dx = -player.speed;
+            e.preventDefault();
+        }
+        if (e.key === 'ArrowRight') {
+            player.dx = player.speed;
+            e.preventDefault();
+        }
+    });
+
+    document.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+            player.dx = 0;
+        }
+    });
+
+    function update() {
+        if (gameOver) return;
+
+        player.x += player.dx;
+        if (player.x < 0) player.x = 0;
+        if (player.x + player.width > canvas.width) {
+            player.x = canvas.width - player.width;
+        }
+
+        frameCount++;
+
+        if (frameCount % 40 === 0) {
+            stars.push({
+                x: Math.random() * (canvas.width - 20) + 10,
+                y: -10,
+                radius: 8,
+                speed: 2 + Math.random() * 2.5
+            });
+        }
+
+        for (let i = stars.length - 1; i >= 0; i--) {
+            const star = stars[i];
+            star.y += star.speed;
+
+            if (
+                star.y + star.radius > player.y &&
+                star.y - star.radius < player.y + player.height &&
+                star.x > player.x &&
+                star.x < player.x + player.width
+            ) {
+                score++;
+                scoreEl.textContent = score;
+                stars.splice(i, 1);
+                continue;
+            }
+
+            if (star.y - star.radius > canvas.height) {
+                lives--;
+                livesEl.textContent = lives;
+                stars.splice(i, 1);
+
+                if (lives <= 0) endGame();
+            }
+        }
+
+        draw();
+        requestAnimationFrame(update);
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        ctx.fillStyle = '#00d2ff';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#00d2ff';
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+
+        ctx.fillStyle = '#e94560';
+        ctx.shadowColor = '#e94560';
+
+        stars.forEach(star => {
+            ctx.beginPath();
+            ctx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        ctx.shadowBlur = 0;
+    }
+
+    function endGame() {
+        gameOver = true;
+        finalScoreEl.textContent = score;
+        gameOverEl.classList.remove('hidden');
+    }
+
+    function resetGame() {
+        score = 0;
+        lives = 3;
+        gameOver = false;
+        stars = [];
+        frameCount = 0;
+
+        player.x = canvas.width / 2 - 30;
+
+        scoreEl.textContent = score;
+        livesEl.textContent = lives;
+        gameOverEl.classList.add('hidden');
+
+        update();
+    }
+
+    update();
+</script>
 </body>
 </html>
